@@ -1,25 +1,16 @@
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from task_1_models import create_tables, Publisher, Book, Stock, Sale, Shop
-from pprint import pprint
+from connection import Session, engine, session
+from test_insert import Filling
 
-# создаем БД publishing_house 
-DSN = 'postgresql://postgres:nehgjlrfa@localhost:5432/publishing_house'
-
-engine = sqlalchemy.create_engine(DSN)   # объект для подключения к БД
-
-Session = sessionmaker(bind=engine)  # Session-создатель сессий (класс)
-
-session = Session()  # создаем экземпляр класса Session
-
-
-# создание таблиц
+#  создание таблиц
 create_tables(engine)
 #
 # заполнение таблицы издательств
 publ_1 = Publisher(name='Азбука')
 publ_2 = Publisher(name='АСТ')
-publ_3 = Publisher(name='Эксмо')
+publ_3 = Publisher(name='ЭКСМО')
 publ_4 = Publisher(name='Иностранка')
 
 session.add_all([publ_1, publ_2, publ_3, publ_4])
@@ -47,9 +38,11 @@ book_9 = Book(title='1Q84', id_publisher=3)
 book_10 = Book(title='Норвежский лес', id_publisher=3)
 book_11 = Book(title='Маленький принц', id_publisher=4)
 book_12 = Book(title='Планета людей', id_publisher=4)
-session.add_all([book_1, book_2, book_3, book_4, book_5, book_6, book_7, book_8, book_9, book_10, 
-                                                                               book_11, book_12])
+session.add_all([book_1, book_2, book_3, book_4, book_5, book_6, book_7, book_8, book_9, book_10, book_11, book_12])
+
 session.commit()
+
+
 
 # заполнение таблицы наличия товара
 stock_1 = Stock(id_book=1, id_shop=1, count=2)
@@ -93,51 +86,19 @@ sale_13 = Sale(price=350, date_sale='10-04-2023', id_stock=15, count=1)
 sale_14 = Sale(price=210, date_sale='08-04-2023', id_stock=17, count=1)
 sale_15 = Sale(price=210, date_sale='10-04-2023', id_stock=17, count=2)
 
-session.add_all([sale_1, sale_2, sale_3, sale_4, sale_5, sale_6, sale_7, sale_8, sale_9, sale_10, sale_11,
-                 sale_12, sale_13, sale_14, sale_15])
+session.add_all([sale_1, sale_2, sale_3, sale_4, sale_5, sale_6, sale_7, sale_8, sale_9, sale_10, sale_11, sale_12,
+                 sale_13, sale_14, sale_15])
 session.commit()
 
 
-#  Функция для построчного вывода фактов покупки книг конкретного издательства:
-
-input_name = input('Введите название издательства: ')
-input_id = input('Введите идентификатор издательства: ')
-
-def get_shop_by_publisher(publisher_name=None, publisher_id=None):
-
-    sudq = session.query(Shop.name, Stock.id).select_from(Shop).join(Stock).join(Sale).subquery()
-
-    if publisher_id is not None and publisher_name is None:
-        for q in session.query(Book.title, Shop.name, Sale.price, Sale.date_sale).select_from(Sale). \
-            join(Stock).join(Book).join(Shop).join(Publisher).join(sudq, Sale.id_stock == Stock.id).filter(Publisher.id
-                                                                                            == int(publisher_id)):
-            print(q)
-    elif publisher_name is not None and publisher_id is None:
-        for q in session.query(Book.title, Shop.name, Sale.price, Sale.date_sale).select_from(Sale). \
-            join(Stock).join(Book).join(Shop).join(Publisher).join(sudq, Sale.id_stock == Stock.id).filter(Publisher.name
-                                                                                                == publisher_name):
-            print(q)
-    elif publisher_name is not None and publisher_id is not None:
-        for q in session.query(Book.title, Shop.name, Sale.price, Sale.date_sale).select_from(Sale). \
-                join(Stock).join(Book).join(Shop).join(Publisher).join(sudq, Sale.id_stock == Stock.id).filter(Publisher.name
-                                                                == publisher_name, Publisher.id == int(publisher_id)):
-            print(q)
+#  Заполнение таблиц через class Filling
+filling = Filling(session)
+publisher5 = filling.create_publisher('ПИТЕР')
+shop5 = filling.create_shop('ЗНАНИЕ')
+book13 = filling.create_book('Грокаем алгоритмы', publisher5)
+stock18 = filling.create_stock(book13, shop5, 2)
+sale16 = filling.create_sale('800', '07-03-2023', stock18, 1)
 
 
-# ВЫЗОВ ФУНЦИИ 
-# Если введено только название:
-if __name__ == '__main__':
-    get_shop_by_publisher(publisher_name=input_name)
 
-
-# Если введен только идентификатор:
-if __name__ == '__main__':
-   get_shop_by_publisher(publisher_id=input_id)
-
-
-# Если введены название и идентификатор:
-if __name__ == '__main__':
-    get_shop_by_publisher(publisher_id=input_id, publisher_name=input_name)
-
-
-session.close() # закрытие сессии
+session.close() 
